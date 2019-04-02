@@ -33,6 +33,7 @@ void mergeSort(int arr[],int left,int right,int *temp){
 	int mid = 0;
 	
 	if (left < right){
+		#pragma omp parallel num_threads(4)
 		#pragma omp parallel sections
 		{
 			mid = left + (right - left) / 2;
@@ -51,8 +52,14 @@ void mergeSort(int arr[],int left,int right,int *temp){
 
 
 int main(){
-	int arr[] = { 8,4,5,7,1,3,6,2};
-	int len = sizeof(arr)/sizeof(arr[0]);
+	// int arr[] = { 8,4,5,7,1,3,6,2};
+	// int len = sizeof(arr)/sizeof(arr[0]);
+	int len;
+	scanf("%d",&len);
+	int arr[len];// = {0};
+	for(int i=0; i<len; i++)
+		scanf("%d",&arr[i]);
+
 	int *temp = (int*)malloc(sizeof(int)*len);
  
 	mergeSort(arr, 0, len - 1, temp);
@@ -63,6 +70,6 @@ int main(){
 		printf("%d ", arr[i]);
 	}
     printf("\n");
-	system("echo \"end\"");
+	// system("echo \"end\"");
 	return 0;
 }
