@@ -11,6 +11,7 @@ int main (int argc, char *argv[])
 		b[i] = i/2;
 	}
 	double start = omp_get_wtime();
+
 	#pragma omp parallel for num_threads(2)
 	for (int i = 0; i < 80000; ++i)
 	{
