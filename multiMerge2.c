@@ -10,6 +10,7 @@
 //#include <time.h>
 #include <sys/time.h>
 #define CHUNK_TH 10000 
+int THREADS = 8;
 //performs the bottom up combine operation
 void merge(int a[], int l, int m, int r)
 {
@@ -58,18 +59,20 @@ void mergeSort_s(int a[], int l, int r)
 
 void mergeSort(int a[], int l, int r)
 {
-    if(r-l<=CHUNK_TH)
+	THREADS /=2;
+    if(THREADS<=1)
         mergeSort_s(a,l,r);
-	if(l<r)
+	else if(l<r)
 	{
 		
 		int m=(l+r)/2;
-		
+		#pragma omp parallel sections 
 		{
-			#pragma omp task
+			#pragma omp section
 			{
 				mergeSort(a,l,m); //call 1
 			}
+			#pragma omp section
 			{
 				mergeSort(a,m+1,r); //call 2
 			}
@@ -81,7 +84,9 @@ void mergeSort(int a[], int l, int r)
 
 int main()
 {
-    omp_set_num_threads(2);
+	omp_set_nested (1);
+    
+	
 	int len;
 	scanf("%d",&len);
 	int arr[len];// = {0};
@@ -94,8 +99,7 @@ int main()
     // start = (long)timecheck.tv_sec * 1000 + (long)timecheck.tv_usec / 1000;
 
 	//call should be to a wrapper function that calls the mergeSort function
-    #pragma omp parallel
-    #pragma omp single
+
 	mergeSort(arr,0,len-1);
     // gettimeofday(&timecheck, NULL);
     // end = (long)timecheck.tv_sec * 1000 + (long)timecheck.tv_usec / 1000;

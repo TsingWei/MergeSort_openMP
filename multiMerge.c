@@ -5,7 +5,7 @@
 #include <string.h>
 //#include <time.h>
 //#include <sys/time.h>
-#define CHUNK_TH 1000000 
+#define CHUNK_TH 10000 
 #define LEVEL_TH 1 
 
 int LEVEL = 1;
@@ -52,11 +52,11 @@ void mergeSort_serial(int arr[], int left, int right, int *temp)
 
 void mergeSort_OMP(int arr[], int left, int right, int *temp)
 {
-	LEVEL++;
-	if (LEVEL >= LEVEL_TH)
+	// LEVEL++;
+	if (left-right < CHUNK_TH)
 		mergeSort_serial(arr, left, right,  temp);
 
-	if (left < right)
+	else if (left < right)
 	{	
 		int mid = left + (right - left) / 2;
 		

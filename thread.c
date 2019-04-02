@@ -4,72 +4,91 @@
 #include <unistd.h>
 #include <string.h>
 //#define NUM_THREADS	5
-
+int NUM_THREADS;
 struct aug{
   int* arr;
   int left;
-  int mid;
+  int id;
   int right;
   int* temp;
 };
 
 
-void mergeAdd(struct aug* arg)
+void mergeAdd(int arr[], int left, int mid, int right, int *temp)
 {
-	int i = arg->left;
-	int j = arg->mid + 1;
-	int k = arg->left; //临时下标
-	while (i <= arg->mid && j <= arg->right)
+	int i = left;
+	int j = mid + 1;
+	int k = left; //临时下标
+	while (i <= mid && j <= right)
 	{
-		if (arg->arr[i] < arg->arr[j])
+		if (arr[i] < arr[j])
 		{
-			arg->temp[k++] = arg->arr[i++];
+			temp[k++] = arr[i++];
 		}
 		else
 		{
-			arg->temp[k++] = arg->arr[j++];
+			temp[k++] = arr[j++];
 		}
 	}
-	while (i <= arg->mid)
+	while (i <= mid)
 	{
-		arg->temp[k++] = arg->arr[i++];
+		temp[k++] = arr[i++];
 	}
-	while (j <= arg->right)
+	while (j <= right)
 	{
-		arg->temp[k++] = arg->arr[j++];
+		temp[k++] = arr[j++];
 	}
 
 	memcpy(arr + left, temp + left, sizeof(int) * (right - left + 1));
+	printf("Hi\n");
 }
 
-void mergeSort_serial(int arr[], int left, int right, int *temp)
+void mergeSort_serial(struct aug* arg)
 {
 
-	if (left < right)
+	if (arg->left < arg->right)
 	{	
-		int mid = left + (right - left) / 2;
-		mergeSort_serial(arr, left, mid, temp);
-		mergeSort_serial(arr, mid + 1, right, temp);
-		mergeAdd(arr, left, mid, right, temp);
+		int mid = arg->left + (arg->right - arg->left) / 2;
+		struct aug temp_arg1=(struct aug){arg->arr, arg->left, arg->id, mid, arg->temp };
+		struct aug temp_arg2=(struct aug){arg->arr, mid, arg->id, arg->right, arg->temp };
+	
+		mergeSort_serial(&temp_arg1);
+		mergeSort_serial(&temp_arg1);
+		mergeAdd(arg->arr, arg->left, mid, arg->right, arg->temp);
 	}
 }
 
-void mergeSort_thread_create(pthread_t threads[],int i, int arr[], int left, int right, int *temp)
+void mergeSort_thread_create(struct aug* arg)
 {
-
-	if (left < right)
+	
+	if (arg->id>=NUM_THREADS){
+		
+		//mergeSort_serial(arr, left, right, temp);
+		pthread_t temp_thread;
+		pthread_create(&temp_thread, NULL, &mergeSort_serial, &arg);
+		pthread_join(temp_thread, NULL);
+	}
+	else if (arg->left < arg->right)
 	{	
-		int mid = left + (right - left) / 2;
-		mergeSort_serial(arr, left, mid, temp);
-		mergeSort_serial(arr, mid + 1, right, temp);
-		mergeAdd(arr, left, mid, right, temp);
+		int mid = arg->left + (arg->right - arg->left) / 2;
+		struct aug temp_arg1=(struct aug){arg->arr, arg->left, arg->id*2, mid, arg->temp };
+		struct aug temp_arg2=(struct aug){arg->arr, mid, arg->id*2, arg->right, arg->temp };
+    pthread_t temp_thread1;
+		pthread_t temp_thread2;
+		printf("%dHere level is %d,left is %d, right is %d.\n",NUM_THREADS,arg->id,arg->left,arg->right);
+    pthread_create(&temp_thread1, NULL, &mergeSort_thread_create, &temp_arg1);
+		pthread_create(&temp_thread2, NULL, &mergeSort_thread_create, &temp_arg2);
+		pthread_join(temp_thread1, NULL);
+		pthread_join(temp_thread2, NULL);
+
+		mergeAdd(arg->arr, arg->left, mid, arg->right, arg->temp);
 	}
 }
 
 int main(int argc, char *argv[])
 {
-  int NUM_THREADS  = atoi(argv[1]);
-  pthread_t threads[NUM_THREADS];
+  NUM_THREADS  = atoi(argv[1]);
+  pthread_t thread1;
 
   int len;
 	scanf("%d", &len);
@@ -82,13 +101,18 @@ int main(int argc, char *argv[])
   // struct msg arg[NUM_THREADS];
   // char* word = "Hello World! It's me, thread #";
   int t=0;
-  for(int t=0;t<NUM_THREADS;t++){
+  // for(int t=0;t<NUM_THREADS;t++){
     // printf("In main: creating thread %d\n", t);
     // arg[t] = (struct msg){t, word};
-    pthread_create(&threads[t], NULL, &PrintHello, &arr[t]);
-  }
-  for(int t=0;t<NUM_THREADS;t++)
-    pthread_join(threads[t], NULL);
+		struct aug arg=(struct aug){arr, 0, 1, len-1, temp };
+    pthread_create(&thread1, NULL, &mergeSort_thread_create, &arg);
+  
+  // for(int t=0;t<NUM_THREADS;t++)
+    pthread_join(thread1, NULL);
+	for (int i = 0; i < len; i++){
+		printf("%d ", arr[i]);
+	}
+	printf("\n");
   printf("\nall threads finish.\n");
   /* Last thing that main() should do */
   pthread_exit(NULL);
