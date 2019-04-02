@@ -8,7 +8,7 @@ int* generator(int n){
     int *temp = (int*)malloc(sizeof(int)*n);
     // int arr[n];
     for(int i=0;i<n;i++)
-        temp[i]=rand()%(10*n);
+        temp[i]=rand()%(1000);
     return temp;
 }
 

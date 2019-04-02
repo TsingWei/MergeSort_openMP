@@ -3,73 +3,103 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+//#include <time.h>
+//#include <sys/time.h>
+#define CHUNK_TH 1000000 
+#define LEVEL_TH 1 
 
-
-
-void mergeAdd(int arr[], int left, int mid, int right, int *temp){//实现“治”
+int LEVEL = 1;
+void mergeAdd(int arr[], int left, int mid, int right, int *temp)
+{
 	int i = left;
 	int j = mid + 1;
-	int k = left;//临时下标
-	while (i <= mid&&j <= right){
-		if (arr[i] < arr[j]){
+	int k = left; //临时下标
+	while (i <= mid && j <= right)
+	{
+		if (arr[i] < arr[j])
+		{
 			temp[k++] = arr[i++];
 		}
-		else{
+		else
+		{
 			temp[k++] = arr[j++];
 		}
 	}
-	while (i <= mid){
+	while (i <= mid)
+	{
 		temp[k++] = arr[i++];
 	}
-	while (j <= right){
+	while (j <= right)
+	{
 		temp[k++] = arr[j++];
 	}
-	//把temp中的内容拷给arr数组中
-	//进行归并的时候，处理的区间是arr[left,right),对应的会把
-	//这部分区间的数组填到tmp[left,right)区间上
-	memcpy(arr + left, temp + left, sizeof(int)*(right - left+1));
+
+	memcpy(arr + left, temp + left, sizeof(int) * (right - left + 1));
 }
-void mergeSort(int arr[],int left,int right,int *temp){
-	int mid = 0;
-	
-	if (left < right){
-		#pragma omp parallel num_threads(4)
-		#pragma omp parallel sections
-		{
-			mid = left + (right - left) / 2;
-			#pragma omp section
-			mergeSort(arr, left, mid, temp);
-			#pragma omp section
-			mergeSort(arr, mid + 1, right, temp);
-		}
-			mergeAdd(arr, left, mid, right, temp);
-		
-		
+
+void mergeSort_serial(int arr[], int left, int right, int *temp)
+{
+
+	if (left < right)
+	{	
+		int mid = left + (right - left) / 2;
+		mergeSort_serial(arr, left, mid, temp);
+		mergeSort_serial(arr, mid + 1, right, temp);
+		mergeAdd(arr, left, mid, right, temp);
 	}
-	
 }
 
 
+void mergeSort_OMP(int arr[], int left, int right, int *temp)
+{
+	LEVEL++;
+	if (LEVEL >= LEVEL_TH)
+		mergeSort_serial(arr, left, right,  temp);
 
-int main(){
-	// int arr[] = { 8,4,5,7,1,3,6,2};
-	// int len = sizeof(arr)/sizeof(arr[0]);
+	if (left < right)
+	{	
+		int mid = left + (right - left) / 2;
+		
+#pragma omp task
+		mergeSort_OMP(arr, left, mid, temp);
+//#pragma omp task
+		mergeSort_OMP(arr, mid + 1, right, temp);
+			
+#pragma omp taskwait
+		mergeAdd(arr, left, mid, right, temp);
+	}
+}
+
+int main()
+{
+	//omp_set_num_threads(2);
 	int len;
-	scanf("%d",&len);
-	int arr[len];// = {0};
-	for(int i=0; i<len; i++)
-		scanf("%d",&arr[i]);
+	scanf("%d", &len);
+	int arr[len]; // = {0};
+	for (int i = 0; i < len; i++)
+		scanf("%d", &arr[i]);
 
-	int *temp = (int*)malloc(sizeof(int)*len);
- 
-	mergeSort(arr, 0, len - 1, temp);
+	int *temp = (int *)malloc(sizeof(int) * len);
+
+	// long start, end;
+	// struct timeval timecheck;
+	// gettimeofday(&timecheck, NULL);
+	// start = (long)timecheck.tv_sec * 1000 + (long)timecheck.tv_usec / 1000;
+
+	double start = omp_get_wtime();
+	#pragma omp parallel
+	mergeSort_OMP(arr, 0, len - 1, temp);
 	free(temp);
-   
-	for (int i = 0; i < len; i++){
-        
-		printf("%d ", arr[i]);
-	}
-    printf("\n");
+	// gettimeofday(&timecheck, NULL);
+	// end = (long)timecheck.tv_sec * 1000 + (long)timecheck.tv_usec / 1000;
+	// printf("%ld milliseconds elapsed\n", (end - start));
+	// for (int i = 0; i < len; i++){
+	// 	printf("%d ", arr[i]);
+	// }
+	// printf("\n");
 	// system("echo \"end\"");
+	double finish = omp_get_wtime();
+	printf("OMP time: %lf\n", finish - start);
+
 	return 0;
 }
